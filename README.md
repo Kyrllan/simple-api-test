@@ -1,5 +1,7 @@
 # simple-api-tester-(BETA)
 
+https://simple-api-tester.fly.dev/
+
 - not implemented authentication yet
 - not implemented cancel request yet
 
