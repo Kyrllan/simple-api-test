@@ -9,6 +9,9 @@
           :items="methods"
           style="max-width: 140px"
           label="Method"
+          item-text="text"
+          item-value="value"
+          return-object
         >
           <template v-slot:selection="{ item }">
             <span :style="`color: ${item.color}`">
@@ -106,7 +109,7 @@
         <div class="parent">
           <div class="div1 mt-2">
             <v-card elevation="0" color="rgba(31, 41, 55, 1)">
-              <div class="pl-2 py-2">
+              <div class="pl-2 py-2 no-selectable">
                 <span>Body</span>
               </div>
               <v-divider></v-divider>
@@ -120,6 +123,7 @@
                     background-color: transparent;
                     color: white;
                   "
+                  v-model="bodyJson"
                 >
                 </textarea>
               </div>
@@ -127,7 +131,7 @@
           </div>
           <div class="div2 mt-2">
             <v-card elevation="0" color="rgba(31, 41, 55, 1)">
-              <div class="pl-2 py-2">
+              <div class="pl-2 py-2 no-selectable">
                 <span>Data</span>
               </div>
               <v-divider></v-divider>
@@ -141,7 +145,7 @@
           </div>
           <div class="div3 mt-2">
             <v-card elevation="0" color="rgba(31, 41, 55, 1)">
-              <div class="pl-2 py-2">
+              <div class="pl-2 py-2 no-selectable">
                 <span>Headers</span>
               </div>
               <v-divider></v-divider>
@@ -155,7 +159,7 @@
           </div>
           <div class="div4 mt-1">
             <v-card elevation="0" color="rgba(31, 41, 55, 1)">
-              <div class="pl-2 py-2">
+              <div class="pl-2 py-2 no-selectable">
                 <span>Config</span>
               </div>
               <v-divider></v-divider>
@@ -170,6 +174,10 @@
         </div>
       </v-col>
     </v-row>
+    <v-snackbar v-model="snackbar" :timeout="3000" color="red accent-2" right>
+      {{ snackbarText }}
+    </v-snackbar>
+    {{ snackbar }}
   </v-container>
 </template>
 
@@ -180,6 +188,8 @@ import Prism from "~/plugins/prism";
 export default {
   name: "IndexPage",
   data: () => ({
+    snackbar: false,
+    snackbarText: "",
     methodSelected: { value: "get", text: "GET" },
     methods: [
       { value: "get", text: "GET", color: "#6D28D9" },
@@ -189,10 +199,11 @@ export default {
       { value: "delete", text: "DELETE", color: "#B91C1C" },
     ],
     url: "",
+    bodyJson: "",
     loading: false,
     token: "",
     auth: false,
-    status: 100,
+    status: null,
     timeResponse: {
       seconds: 0,
       milliseconds: 0,
@@ -251,48 +262,103 @@ export default {
       }
     },
     async get() {
-      this.loading = true
+      this.loading = true;
       this.startTimer();
       try {
         const response = await axios.get(this.url);
-        await this.renderOutput(response);
+        this.renderOutput(response);
       } catch (error) {
         this.renderError(error);
       } finally {
-        this.loading = false
+        this.loading = false;
         this.pauseTimer();
       }
     },
-    post() {
-      console.log("post");
+    async post() {
+      this.loading = true;
+      this.startTimer();
+      try {
+        const response = await axios.post(this.url, JSON.parse(this.bodyJson));
+        this.renderOutput(response);
+      } catch (error) {
+        this.renderError(error);
+      } finally {
+        this.loading = false;
+        this.pauseTimer();
+      }
     },
-    put() {
-      console.log("put");
+    async put() {
+      this.loading = true;
+      this.startTimer();
+      try {
+        const response = await axios.put(this.url, JSON.parse(this.bodyJson));
+        this.renderOutput(response);
+      } catch (error) {
+        this.renderError(error);
+      } finally {
+        this.loading = false;
+        this.pauseTimer();
+      }
     },
-    patch() {
-      console.log("patch");
+    async patch() {
+      this.loading = true;
+      this.startTimer();
+      try {
+        const response = await axios.patch(this.url, JSON.parse(this.bodyJson));
+        this.renderOutput(response);
+      } catch (error) {
+        this.renderError(error);
+      } finally {
+        this.loading = false;
+        this.pauseTimer();
+      }
     },
-    delete() {
-      console.log("delete");
+    async delete() {
+      this.loading = true;
+      this.startTimer();
+      try {
+        const response = await axios.delete(this.url, this.bodyJson ? JSON.parse(this.bodyJson) : '');
+        this.renderOutput(response);
+      } catch (error) {
+        this.renderError(error);
+      } finally {
+        this.loading = false;
+        this.pauseTimer();
+      }
     },
     renderOutput(response) {
       this.status = response.status;
-
       // Data
       this.dataEl.innerHTML = JSON.stringify(response.data, null, 2);
       Prism.highlightElement(this.dataEl);
-
       // Headers
       this.headersEl.innerHTML = JSON.stringify(response.headers, null, 2);
       Prism.highlightElement(this.headersEl);
-
       // Config
       this.configEl.innerHTML = JSON.stringify(response.config, null, 2);
       Prism.highlightElement(this.configEl);
     },
     renderError(error) {
-      console.log(error);
-      this.status = error.status;
+      this.snackbar = true;
+      this.snackbarText = error;
+      this.status = error.response.status;
+      // Data
+      this.dataEl.innerHTML = JSON.stringify(
+        this.statusCodeErrorMessage(this.status),
+        null,
+        2
+      );
+      Prism.highlightElement(this.dataEl);
+      // Headers
+      this.headersEl.innerHTML = JSON.stringify(
+        error.response.headers,
+        null,
+        2
+      );
+      Prism.highlightElement(this.headersEl);
+      // Config
+      this.configEl.innerHTML = JSON.stringify(error.response.config, null, 2);
+      Prism.highlightElement(this.configEl);
     },
     startTimer() {
       this.stopTimer();
@@ -328,6 +394,93 @@ export default {
       this.dataEl.innerHTML = "";
       this.headersEl.innerHTML = "";
       this.configEl.innerHTML = "";
+      this.bodyJson = ''
+    },
+    statusCodeErrorMessage(status) {
+      switch (status) {
+        case 400:
+          return "Bad Request";
+        case 401:
+          return "Unauthorized";
+        case 402:
+          return "Payment Required";
+        case 403:
+          return "Forbidden";
+        case 404:
+          return "Not Found";
+        case 405:
+          return "Method Not Allowed";
+        case 406:
+          return "Not Acceptable";
+        case 407:
+          return "Proxy Authentication Required";
+        case 408:
+          return "Request Timeout";
+        case 409:
+          return "Conflict";
+        case 410:
+          return "Gone";
+        case 411:
+          return "Length Required";
+        case 412:
+          return "Precondition Failed";
+        case 413:
+          return "Payload Too Large";
+        case 414:
+          return "URI Too Long";
+        case 415:
+          return "Unsupported Media Type";
+        case 416:
+          return "Range Not Satisfiable";
+        case 417:
+          return "Expectation Failed";
+        case 418:
+          return "Im a teapot";
+        case 421:
+          return "Misdirected Request";
+        case 422:
+          return "Unprocessable Entity";
+        case 423:
+          return "Locked";
+        case 424:
+          return "Failed Dependency";
+        case 425:
+          return "Too Early";
+        case 426:
+          return "Upgrade Required";
+        case 428:
+          return "Precondition Required";
+        case 429:
+          return "Too Many Requests";
+        case 431:
+          return "Request Header Fields Too Large";
+        case 451:
+          return "Unavailable For Legal Reasons ";
+        case 500:
+          return "Internal Server Error";
+        case 501:
+          return "Not Implemented";
+        case 502:
+          return "Bad Gateway";
+        case 503:
+          return "Service Unavailable";
+        case 504:
+          return "Gateway Timeout";
+        case 505:
+          return "HTTP Version Not Supported";
+        case 506:
+          return "Variant Also Negotiates";
+        case 507:
+          return "Insufficient Storage";
+        case 508:
+          return "Loop Detected";
+        case 510:
+          return "Not Extended";
+        case 511:
+          return "Network Authentication";
+        default:
+          break;
+      }
     },
   },
 };
