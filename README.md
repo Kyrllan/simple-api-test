@@ -1,4 +1,7 @@
-# simple-api-tester
+# simple-api-tester-(BETA)
+
+- not implemented authentication yet
+- not implemented cancel request yet
 
 ## Build Setup
 
