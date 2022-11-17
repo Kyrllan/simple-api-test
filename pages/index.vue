@@ -177,7 +177,6 @@
     <v-snackbar v-model="snackbar" :timeout="3000" color="red accent-2" right>
       {{ snackbarText }}
     </v-snackbar>
-    {{ snackbar }}
   </v-container>
 </template>
 
